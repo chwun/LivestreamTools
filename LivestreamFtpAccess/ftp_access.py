@@ -39,4 +39,4 @@ def upload_ftp_livestream_data(video_id: str) -> bool:
             return False
 
 
-upload_ftp_livestream_data('gfdfgdrfg')
+upload_ftp_livestream_data('xyz')
