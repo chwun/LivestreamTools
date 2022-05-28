@@ -2,7 +2,7 @@
 
 ## Beschreibung
 
-Python-Skript, das eine YouTube-Id entgegennimmt und diese im FTP-Root-Verzeichnis in einer Datei "videoId.txt" ablegt.
+Python-Skript, das eine YouTube-Id entgegennimmt und diese im FTP-Root-Verzeichnis in einer Datei `videoId.txt` ablegt.
 
 ## Setup
 
