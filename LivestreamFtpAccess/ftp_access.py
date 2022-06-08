@@ -2,24 +2,15 @@
 
 import ftplib
 import io
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 VIDEO_ID_FILENAME = 'videoId.txt'
 
 
-def upload_ftp_livestream_data(video_id: str) -> bool:
+def upload_ftp_livestream_data(ftp_host: str, ftp_user: str, ftp_password: str, video_id: str) -> bool:
     '''Uploads given livestream data via FTP'''
-
-    ftp_host = os.getenv('FTP_HOST')
 
     with ftplib.FTP(ftp_host) as ftp:
         try:
-            ftp_user = os.getenv('FTP_USER')
-            ftp_password = os.getenv('FTP_PASSWORD')
-
             ftp.login(ftp_user, ftp_password)
 
             bio = io.BytesIO()
@@ -39,4 +30,13 @@ def upload_ftp_livestream_data(video_id: str) -> bool:
             return False
 
 
-upload_ftp_livestream_data('xyz')
+if __name__ == '__main__':
+    from dotenv import dotenv_values
+
+    env_values = dotenv_values()
+    ftp_host = env_values.get('FTP_HOST', 'test_host')
+    ftp_user = env_values.get('FTP_USER', 'test_user')
+    ftp_password = env_values.get('FTP_PASSWORD', 'test_password')
+    video_id = 'xyzID'
+
+    upload_ftp_livestream_data(ftp_host, ftp_user, ftp_password, video_id)
