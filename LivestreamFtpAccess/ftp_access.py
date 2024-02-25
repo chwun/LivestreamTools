@@ -6,12 +6,23 @@ import io
 VIDEO_ID_FILENAME = 'videoId.txt'
 
 
-def upload_ftp_livestream_data(ftp_host: str, ftp_user: str, ftp_password: str, video_id: str) -> bool:
+def upload_ftp_livestream_data(
+        ftp_host: str,
+        ftp_user: str,
+        ftp_password: str,
+        video_id: str,
+        use_tls: bool = True,
+        ) -> bool:
     '''Uploads given livestream data via FTP'''
 
-    with ftplib.FTP(ftp_host) as ftp:
+    ftp_class = ftplib.FTP_TLS if use_tls else ftplib.FTP
+
+    with ftp_class(ftp_host) as ftp:
         try:
             ftp.login(ftp_user, ftp_password)
+            
+            if use_tls:
+                ftp.prot_p()  # Set communication to be secured via TLS
 
             bio = io.BytesIO()
             bio.write(video_id.encode())
