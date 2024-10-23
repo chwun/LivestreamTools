@@ -1,8 +1,30 @@
-# Define FTP credentials and server details
-$ftpServer = "ftp://yourserver.com"
-$ftpUsername = "yourUsername"
-$ftpPassword = "yourPassword"
-$ftpDirectory = "/path/on/ftp/server/"
+# Function to load environment variables from a .env file
+function Load-EnvFile {
+    param (
+        [string]$filePath
+    )
+
+    if (Test-Path $filePath) {
+        Get-Content $filePath | ForEach-Object {
+            if ($_ -match "^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$") {
+                [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+            }
+        }
+    } else {
+        Write-Host "The .env file was not found at $filePath"
+        exit 1
+    }
+}
+
+# Load environment variables from the .env file
+$envFilePath = ".\.env"
+Load-EnvFile -filePath $envFilePath
+
+# Retrieve FTP credentials from environment variables
+$ftpServer = [Environment]::GetEnvironmentVariable("FTP_SERVER")
+$ftpUsername = [Environment]::GetEnvironmentVariable("FTP_USERNAME")
+$ftpPassword = [Environment]::GetEnvironmentVariable("FTP_PASSWORD")
+$ftpDirectory = [Environment]::GetEnvironmentVariable("FTP_DIRECTORY")
 $fileName = "youtube_video_id.txt"
 
 # Function to extract video ID from a YouTube URL
