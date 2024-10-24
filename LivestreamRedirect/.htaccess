@@ -1,0 +1,3 @@
+# Deny direct access to subdirectory "data"
+RewriteEngine On
+RewriteRule ^data/ - [F,L]
