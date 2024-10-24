@@ -21,11 +21,10 @@ $envFilePath = ".\.env"
 Load-EnvFile -filePath $envFilePath
 
 # Retrieve FTP credentials from environment variables
-$ftpServer = [Environment]::GetEnvironmentVariable("FTP_SERVER")
-$ftpUsername = [Environment]::GetEnvironmentVariable("FTP_USERNAME")
+$ftpServer = [Environment]::GetEnvironmentVariable("FTP_HOST")
+$ftpUsername = [Environment]::GetEnvironmentVariable("FTP_USER")
 $ftpPassword = [Environment]::GetEnvironmentVariable("FTP_PASSWORD")
-$ftpDirectory = [Environment]::GetEnvironmentVariable("FTP_DIRECTORY")
-$fileName = "youtube_video_id.txt"
+$fileName = "videoId.txt"
 
 # Function to extract video ID from a YouTube URL
 function Get-YouTubeVideoID {
@@ -41,20 +40,31 @@ function Get-YouTubeVideoID {
     elseif ($url -match 'youtu\.be\/([a-zA-Z0-9_-]{11})') {
         return $matches[1]
     }
+    # Check if it's a YouTube Live URL
+    elseif ($url -match 'youtube\.com\/live\/([a-zA-Z0-9_-]{11})') {
+        return $matches[1]
+    }
     else {
         return $null
     }
 }
 
+# Show warning
+Write-Host "-----------------------------------------------------------------------"
+Write-Host "ACHTUNG: Dieses Skript ändert den Livestream-Link auf der Homepage!"
+Write-Host "         Zum Abbrechen Strg+C drücken"
+Write-Host "-----------------------------------------------------------------------"
+Write-Host ""
+
 # Prompt the user for a YouTube link
-$youtubeLink = Read-Host "Please enter a YouTube link"
+$youtubeLink = Read-Host "Vollständigen YouTube-Link eingeben"
 
 # Extract the video ID from the YouTube link
 $videoID = Get-YouTubeVideoID -url $youtubeLink
 
 # Check if a valid video ID was extracted
 if (-not $videoID) {
-    Write-Host "Invalid YouTube link. Could not extract a valid video ID."
+    Write-Host "YouTube-Link nicht erkannt, evtl. ungültiges Format?"
     exit 1
 }
 
@@ -63,24 +73,36 @@ $tempFilePath = [System.IO.Path]::GetTempFileName()
 Set-Content -Path $tempFilePath -Value $videoID
 
 # Define FTP URI for file upload
-$ftpUri = "$ftpServer$ftpDirectory$fileName"
+$ftpUri = "ftp://$ftpServer/$fileName"
 
-# Create a WebClient object
-$webClient = New-Object System.Net.WebClient
+# Set a global certificate validation callback to ignore SSL errors (not recommended in production)
+[System.Net.ServicePointManager]::ServerCertificateValidationCallback = { return $true }
 
-# Add FTP credentials to the WebClient object
-$webClient.Credentials = New-Object System.Net.NetworkCredential($ftpUsername, $ftpPassword)
+# Create an FtpWebRequest object
+$ftpRequest = [System.Net.FtpWebRequest]::Create($ftpUri)
+$ftpRequest.Method = [System.Net.WebRequestMethods+Ftp]::UploadFile
+$ftpRequest.Credentials = New-Object System.Net.NetworkCredential($ftpUsername, $ftpPassword)
 
-# Upload the file to the FTP server
+# Enable SSL for FTPS
+$ftpRequest.EnableSsl = $true
+
+# Suppress certificate errors (optional, consider validating the certificate in production)
+# $ftpRequest.ServerCertificateValidationCallback = { $true }
+
+# Read the file content into a byte array
+$fileContent = [System.IO.File]::ReadAllBytes($tempFilePath)
+$ftpRequest.ContentLength = $fileContent.Length
+
+# Get the request stream and write the file content to it
 try {
-    $webClient.UploadFile($ftpUri, $tempFilePath)
-    Write-Host "File uploaded successfully with video ID: $videoID"
+    $requestStream = $ftpRequest.GetRequestStream()
+    $requestStream.Write($fileContent, 0, $fileContent.Length)
+    $requestStream.Close()
+    
+    Write-Host "Livestream-Link erfolgreich gesetzt (video ID: $videoID)"
 } catch {
-    Write-Host "Error: $($_.Exception.Message)"
+    Write-Host "Fehler: $($_.Exception.Message)"
 } finally {
     # Clean up temporary file
     Remove-Item $tempFilePath
 }
-
-# Dispose of the WebClient object
-$webClient.Dispose()
